@@ -1,0 +1,46 @@
+name: Deploy PROD to watercolumnproject.org
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "The tagged version to release."
+        required: true
+
+jobs:
+  build:
+    name: Build Water Column Sonar Visualization UI for PROD
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    environment: prod
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version }}
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - run: aws s3 cp --recursive ./dist/ s3://watercolumnproject.org/
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - run: aws cloudfront create-invalidation --distribution-id E38IRRAY5TY4MK --paths '/*'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

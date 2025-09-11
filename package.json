@@ -1,7 +1,7 @@
 {
   "name": "water-column-sonar-visualization",
   "private": true,
-  "version": "25.9.3",
+  "version": "25.9.4",
   "type": "module",
   "scripts": {
     "dev": "vite",
