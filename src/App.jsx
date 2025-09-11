@@ -1,22 +1,48 @@
-import { useRef, } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { MapControls } from '@react-three/drei'
 import * as THREE from 'three'
 import './App.css'
 
 function Box(props) {
-    const meshRef = useRef(null)
+    const meshRef = useRef(null);
+    const [texture, setTexture] = useState(null);
     useFrame((_, delta) => {
         meshRef.current.rotation.x += delta;
         meshRef.current.rotation.y += delta;
-    })
+    });
+
+    useEffect(() => {
+        async function makeTexture() {
+            await document.fonts.load('100px "Comic Sans MS"');
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 256;
+            canvas.height = 256;
+
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = 'black';
+            ctx.font = '100px "Comic Sans MS"';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('fish', canvas.width / 2, canvas.height / 2);
+
+            setTexture(new THREE.CanvasTexture(canvas));
+        }
+
+        makeTexture();
+    }, []);
+
     return (
         <mesh
             {...props}
             ref={meshRef}
             scale={1}>
             <boxGeometry args={[1, 1, 1]} />
-            <meshStandardMaterial color='green' map={createTextTexture("fish")} />
+            {texture && <meshStandardMaterial color='green' map={texture} />}
         </mesh>
     )
 }
@@ -42,21 +68,3 @@ function App() {
 }
 
 export default App
-
-function createTextTexture(text) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = 256;
-    canvas.height = 256;
-
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = "black";
-    ctx.font = '100px "Comic Sans MS"';
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-
-    return new THREE.CanvasTexture(canvas);
-}
