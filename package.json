@@ -12,9 +12,14 @@
   "dependencies": {
     "@react-three/drei": "^10.7.6",
     "@react-three/fiber": "^9.3.0",
+    "@reduxjs/toolkit": "^2.9.0",
     "@types/three": "^0.180.0",
+    "install": "^0.13.0",
+    "npm": "^11.6.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-redux": "^9.2.0",
+    "react-router": "^7.9.1",
     "three": "^0.180.0",
     "zarrita": "^0.5.3"
   },

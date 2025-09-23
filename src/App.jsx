@@ -3,6 +3,8 @@ import { Canvas, useFrame } from '@react-three/fiber'
 import { MapControls } from '@react-three/drei'
 import * as THREE from 'three'
 import './App.css'
+import { BrowserRouter, Route, Routes } from 'react-router'
+import KitchenSink from './pages/KitchenSink'
 
 function Box(props) {
     const meshRef = useRef(null);
@@ -47,7 +49,7 @@ function Box(props) {
     )
 }
 
-function App() {
+function CanvasApp() {
     return (
         <Canvas
             style={{ width: '100vw', height: '100vh' }}>
@@ -64,6 +66,17 @@ function App() {
                 screenSpacePanning={true}
             />
         </Canvas >
+    )
+}
+
+function App() {
+    return (
+        <BrowserRouter>
+            <Routes>
+                <Route path='/' element={<CanvasApp />} />
+                <Route path='/kitchen-sink' element={<KitchenSink />} />
+            </Routes>
+        </BrowserRouter>
     )
 }
 
