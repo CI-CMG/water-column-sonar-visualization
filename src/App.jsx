@@ -65,7 +65,7 @@ function CanvasApp() {
                 maxPolarAngle={Math.PI / 2}
                 screenSpacePanning={true}
             />
-        </Canvas >
+        </Canvas>
     )
 }
 
