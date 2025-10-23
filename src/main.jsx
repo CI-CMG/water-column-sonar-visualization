@@ -7,6 +7,7 @@ import { store } from './app/store';
 
 createRoot(document.getElementById('root')).render(
     <StrictMode>
+        {/* Wrap the app in the store so that all pages can access it */}
         <Provider store={store}>
             <App />
         </Provider>

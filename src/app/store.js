@@ -2,6 +2,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import counterReducer from "../features/counter/counterSlice"
 import { pokemonApi } from "../services/pokemon";
 
+// Define the app's store
 export const store = configureStore({
     reducer: {
         counter: counterReducer,
@@ -9,5 +10,6 @@ export const store = configureStore({
     },
     middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(pokemonApi.middleware),
 },
+    // I'm not exacly sure why, but the Redux dev tools will not work without this line
     window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__()
 )

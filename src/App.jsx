@@ -4,6 +4,8 @@ import Fishbox from './pages/Fishbox'
 import Zarrita from './pages/Zarrita'
 import PokemonDisplay from './pages/Pokemon'
 
+// Don't define a page in the App script
+// This is just for setting up the page structure link-wise
 function App() {
     return (
         <BrowserRouter>

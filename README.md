@@ -2,6 +2,39 @@
 
 Water Column Sonar Data Visualization Project for Warren Tech 2025 to 2026 Capstone
 
+## Installation and setup
+
+1. Clone the repository
+
+2. Install dependencies
+
+```sh
+npm install
+```
+
+3. Run Vite to start server
+```sh
+npx vite
+```
+
+## Deployment
+
+### Dev
+
+All pushes to `main` will be automatically deployed to [dev.watercolumnproject.org](dev.watercolumnproject.org)
+
+### Test
+
+Tagging any commit will automatically deploy it to [test.watercolumnproject.org](test.watercolumnproject.org)
+
+### Prod
+
+1. Go to the `Actions` tab
+
+2. Click on the tab on the side that begins with `Deploy PROD`
+
+3. Click the `Run workflow` button and input the tag to deploy
+
 ## Tagging Commands
 
 `git tag -a v25.9.x -m "Releasing v25.9.x"`

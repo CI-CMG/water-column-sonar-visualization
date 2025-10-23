@@ -3,7 +3,9 @@ import { decrement, increment, incrementAsync, incrementByAmount } from "./count
 import { useState } from "react";
 
 export default function Counter() {
+    // useSelector defines a function to fetch the value
     const count = useSelector((state) => state.counter.value)
+    // useDispatch allows for the ability to "dispatch" functions to the store
     const dispatch = useDispatch()
     const [incrementAmount, setIncrementAmount] = useState('2')
 
