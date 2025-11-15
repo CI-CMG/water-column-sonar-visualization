@@ -1,4 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { fetchStoreShape } from "./zarrApi";
 
 const initialState = {
     shipName: "Henry_B._Bigelow",
@@ -8,8 +9,16 @@ const initialState = {
     storeShapeStatus: "idle",
 }
 
-const storeShapeAsync = createAsyncThunk(
+export const selectStoreShape = (state) => state.store.storeShape
 
+// Eventually there will be a thunk for each property that needs to be accessed
+// The thunks are separate from the Api in order to make each section more readable
+export const storeShapeAsync = createAsyncThunk(
+    "zarr/fetchStoreShape",
+    async ({ ship, cruise, sensor }) => {
+        const response = fetchStoreShape(ship, cruise, sensor)
+        return response
+    }
 )
 
 export const zarrSlice = createSlice({
