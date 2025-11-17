@@ -9,7 +9,8 @@ const initialState = {
     storeShapeStatus: "idle",
 }
 
-export const selectStoreShape = (state) => state.store.storeShape
+// Get the property from the zarr reducer
+export const selectStoreShape = (state) => state.zarr.storeShape
 
 // Eventually there will be a thunk for each property that needs to be accessed
 // The thunks are separate from the Api in order to make each section more readable

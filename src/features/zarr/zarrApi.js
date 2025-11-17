@@ -1,6 +1,5 @@
 import * as zarr from 'zarrita'
 
-// 
 export const fetchStoreShape = (ship, cruise, sensor) => {
     const url = `https://noaa-wcsd-zarr-pds.s3.amazonaws.com/level_2/${ship}/${cruise}/${sensor}/${cruise}.zarr/`
 

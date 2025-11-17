@@ -8,7 +8,11 @@ function Zarrita() {
     const storeShape = useSelector(selectStoreShape)
 
     useEffect(() => {
-        dispatch(storeShapeAsync())
+        // Temporary values
+        const ship = "Henry_B._Bigelow"
+        const cruise = "HB1906"
+        const sensor = "EK60"
+        dispatch(storeShapeAsync({ ship, cruise, sensor }))
     }, [dispatch])
 
     return (
