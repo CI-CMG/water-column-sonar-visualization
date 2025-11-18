@@ -1,24 +1,22 @@
-import * as zarr from 'zarrita'
-import { get } from '@zarrita/ndarray'
-import { slice } from 'zarrita'
-
-async function get_store(url) {
-    return zarr.withConsolidated(new zarr.FetchStore(url))
-        .then((storePromise) => {
-            return zarr.open.v2(storePromise, { kind: "group" });
-        })
-        .then((rootPromise) => {
-            return zarr.open(rootPromise.resolve("Sv"), { kind: "array" });
-        })
-        .then((svArray) => {
-            return get(svArray, [slice(0, 512), slice(0, 512), 1]);
-        });
-}
+import { useDispatch, useSelector } from 'react-redux'
+import { selectStoreShape, storeShapeAsync } from '../features/zarr/zarrSlice'
+import { useEffect } from 'react'
 
 function Zarrita() {
-    console.log(get_store("https://noaa-wcsd-zarr-pds.s3.amazonaws.com/level_2/Henry_B._Bigelow/HB1906/EK60/HB1906.zarr/"))
+    const dispatch = useDispatch()
+
+    const storeShape = useSelector(selectStoreShape)
+
+    useEffect(() => {
+        // Temporary values
+        const ship = "Henry_B._Bigelow"
+        const cruise = "HB1906"
+        const sensor = "EK60"
+        dispatch(storeShapeAsync({ ship, cruise, sensor }))
+    }, [dispatch])
+
     return (
-        <div></div>
+        <div>{storeShape}</div>
     )
 }
 

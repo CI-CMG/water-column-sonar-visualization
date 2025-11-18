@@ -8,6 +8,7 @@ function Pokemon({ name, pollingInterval }) {
     const { data, error, isLoading, isFetching } = useGetPokemonByNameQuery(name, { pollingInterval })
 
     return (
+        // Display the state of the response to the user
         <div>
             {error ? (
                 <>Oh no, there was an error</>
@@ -24,6 +25,8 @@ function Pokemon({ name, pollingInterval }) {
 }
 
 export default function PokemonDisplay() {
+    // The pollingInterval determines how often we fetch the data. Right now, there isn't a reason to,
+    // but in the future, we might have to deal with data that is changing
     const [pollingInterval, setPollingInterval] = useState(0)
 
     return (
@@ -36,6 +39,8 @@ export default function PokemonDisplay() {
                 <option value={5000}>5s</option>
             </select>
             <div>
+                {/* The nice thing about redux is that it can handle many different requests at the same time
+                    and merges duplicate requests */}
                 {pokemon.map((poke, index) => (
                     <Pokemon key={index} name={poke} pollingInterval={pollingInterval} />
                 ))}
