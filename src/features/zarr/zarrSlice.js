@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { fetchStoreShape } from "./zarrApi";
+import { fetchStoreShape } from './fetchStoreShape';
 
+// Prevent a bunch of null values initially
 const initialState = {
     shipName: "Henry_B._Bigelow",
     cruiseName: "HB1906",
@@ -9,7 +10,8 @@ const initialState = {
     storeShapeStatus: "idle",
 }
 
-// Get the property from the zarr reducer
+// The selector is just a getter for the data we want
+// Each property we want will need a selector for it
 export const selectStoreShape = (state) => state.zarr.storeShape
 
 // Eventually there will be a thunk for each property that needs to be accessed
@@ -26,6 +28,7 @@ export const zarrSlice = createSlice({
     name: "zarr",
     initialState,
     reducers: {},
+    // Handle the state of the thunk, and add it to the state
     extraReducers: builder => {
         builder.addCase(storeShapeAsync.pending, state => {
             state.storeShapeStatus = "loading"

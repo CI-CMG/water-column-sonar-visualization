@@ -4,12 +4,13 @@ import { pokemonApi } from "../services/pokemon";
 import zarrReducer from "../features/zarr/zarrSlice";
 
 // Define the app's store
+// The store is a centralized data storage that can be accessed from any part of the app
 export const store = configureStore({
     reducer: {
         // Test reducers
         counter: counterReducer,
         [pokemonApi.reducerPath]: pokemonApi.reducer,
-        // The actual reducer for fetching the data
+        // The actual reducer for fetching the zarr stores
         zarr: zarrReducer
     },
     middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(pokemonApi.middleware),

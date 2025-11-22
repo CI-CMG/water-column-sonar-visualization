@@ -17,6 +17,10 @@ npm install
 npx vite
 ```
 
+## Structure
+
+This project uses React and Vite, so 
+
 ## Deployment
 
 ### Dev
@@ -28,6 +32,8 @@ All pushes to `main` will be automatically deployed to [dev.watercolumnproject.o
 Tagging any commit will automatically deploy it to [test.watercolumnproject.org](test.watercolumnproject.org)
 
 ### Prod
+
+All prod deployments must be manually triggered
 
 1. Go to the `Actions` tab
 

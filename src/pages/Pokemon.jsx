@@ -26,7 +26,7 @@ function Pokemon({ name, pollingInterval }) {
 
 export default function PokemonDisplay() {
     // The pollingInterval determines how often we fetch the data. Right now, there isn't a reason to,
-    // but in the future, we might have to deal with data that is changing
+    // but in the future we might have to deal with data that is changing
     const [pollingInterval, setPollingInterval] = useState(0)
 
     return (
