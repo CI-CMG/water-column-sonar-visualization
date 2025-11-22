@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { fetchStoreShape } from './fetchStoreShape';
+import { fetchStoreShape } from './zarrApi.js';
 
 // Prevent a bunch of null values initially
 const initialState = {
