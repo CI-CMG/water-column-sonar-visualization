@@ -1,5 +1,5 @@
 import { useDispatch, useSelector } from 'react-redux'
-import { selectStoreShape, storeShapeAsync } from '../features/zarr/zarrSlice'
+import { selectStoreShape, storeShapeAsync } from '../features/store/storeSlice'
 import { useEffect } from 'react'
 
 function Zarrita() {

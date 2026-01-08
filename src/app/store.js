@@ -1,7 +1,7 @@
 import { configureStore } from "@reduxjs/toolkit";
 import counterReducer from "../features/counter/counterSlice"
 import { pokemonApi } from "../services/pokemon";
-import zarrReducer from "../features/zarr/zarrSlice";
+import storeReducer from "../features/store/storeSlice";
 
 // Define the app's store
 // The store is a centralized data storage that can be accessed from any part of the app
@@ -11,7 +11,7 @@ export const store = configureStore({
         counter: counterReducer,
         [pokemonApi.reducerPath]: pokemonApi.reducer,
         // The actual reducer for fetching the zarr stores
-        zarr: zarrReducer
+        store: storeReducer
     },
     middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(pokemonApi.middleware),
 },
