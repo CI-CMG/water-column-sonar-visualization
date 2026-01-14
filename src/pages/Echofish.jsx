@@ -4,6 +4,7 @@ import { Canvas } from '@react-three/fiber'
 import { MapControls } from '@react-three/drei'
 import { fetchSvTile } from '../features/store/storeApi'
 import '../App.css'
+import { data } from 'react-router'
 
 const Plane = (props) => {
     const meshRef = useRef(null);
@@ -30,6 +31,7 @@ const Plane = (props) => {
             }
 
             const dataTexture = new THREE.DataTexture(colorData, 256, 256, THREE.RGBAFormat, THREE.UnsignedByteType);
+            dataTexture.flipY = true;
             dataTexture.needsUpdate = true;
 
             setTexture(dataTexture);
