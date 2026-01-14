@@ -3,6 +3,7 @@ import KitchenSink from './pages/KitchenSink'
 import Fishbox from './pages/Fishbox'
 import Zarrita from './pages/Zarrita'
 import PokemonDisplay from './pages/Pokemon'
+import Echofish from './pages/Echofish.jsx'
 
 // Don't define a page in the App script
 // This is just for setting up the page structure link-wise
@@ -13,7 +14,8 @@ function App() {
                 <Route path='/zarrita' element={<Zarrita />} />
                 <Route path='/fishbox' element={<Fishbox />} />
                 <Route path='/kitchen-sink' element={<KitchenSink />} />
-                <Route path='/' element={<PokemonDisplay />} />
+                <Route path='/pokemon' element={<PokemonDisplay />} />
+                <Route path='/' element={<Echofish />} />
             </Routes>
         </BrowserRouter>
     )
