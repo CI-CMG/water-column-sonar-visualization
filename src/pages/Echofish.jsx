@@ -1,5 +1,7 @@
 import { useRef, useEffect, useState } from 'react'
 import * as THREE from 'three'
+import { scaleSequential } from  'd3-scale'
+import { interpolateTurbo } from 'd3-scale-chromatic'
 import { Canvas } from '@react-three/fiber'
 import { MapControls } from '@react-three/drei'
 import { fetchSvTile } from '../features/store/storeApi'
@@ -20,14 +22,19 @@ const Plane = (props) => {
 
             const initTile = await fetchSvTile(ship, cruise, sensor, 0, 256, 0, 256)
             const tile = initTile;
+
+            // Maps the SV points to a d3 scale
+            const colorScale = scaleSequential(interpolateTurbo).domain([-100, 0]);
             // This array stores each byte of color separately as RGBA
             const colorData = new Uint8ClampedArray(tile.data.length * 4).fill(255);
 
             for (let i = 0; i < tile.data.length; i++) {
-                colorData[4 * i + 0] = 0; // red
-                colorData[4 * i + 1] = (tile.data[i] + 100) * 255 / 100; // green
-                if (colorData[4 * i + 1] != 255) console.log(4 * i + 1, colorData[4 * i + 1])
-                colorData[4 * i + 2] = 0; // blue
+                const sv = tile.data[i];
+                const color = new THREE.Color(colorScale(sv));
+                colorData[i * 4 + 0] = Math.round(color.r * 255);
+                colorData[i * 4 + 1] = Math.round(color.g * 255);
+                colorData[i * 4 + 2] = Math.round(color.b * 255);
+                colorData[i * 4 + 3] = 255; // Alpha channel
             }
 
             const dataTexture = new THREE.DataTexture(colorData, 256, 256, THREE.RGBAFormat, THREE.UnsignedByteType);
