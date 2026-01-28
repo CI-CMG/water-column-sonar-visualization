@@ -3,17 +3,15 @@ import { useDispatch, useSelector } from 'react-redux'
 import * as THREE from 'three'
 import { scaleSequential } from 'd3-scale'
 import { interpolateTurbo } from 'd3-scale-chromatic'
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { Canvas, useFrame } from '@react-three/fiber'
 import { MapControls } from '@react-three/drei'
 import { fetchSvTile } from '../features/store/storeApi'
 import { selectStoreShape, storeShapeAsync } from '../features/store/storeSlice.js'
 import '../App.css'
 
-const Tile = ({ coords, tileSize, storeShape }) => {
+const Tile = ({ coords, tileSize, storeShape, ...props }) => {
     const meshRef = useRef(null);
     const [texture, setTexture] = useState(null);
-    // const dispatch = useDispatch()
-    // const sv = useSelector(selectSv)
 
     useEffect(() => {
         const makeTile = async () => {
@@ -29,7 +27,7 @@ const Tile = ({ coords, tileSize, storeShape }) => {
             const maxTileBoundsY = Math.abs(maxBoundsValue[0][0]) / tileSize;
 
             // TODO: Do something when we go beyond the edge of the data
-            if (coords.y < 0 || coords.y >= maxTileBoundsY || coords.x < 0 || coords.x >= maxTileBoundsX) return
+            if (coords.y < 0 || coords.y >= maxTileBoundsY || coords.x < 0 || coords.x >= maxTileBoundsX) return (<></>)
 
             const maxBoundsY = Math.abs(dataDimension[0]);
             const maxBoundsX = Math.abs(dataDimension[1]);
@@ -40,6 +38,7 @@ const Tile = ({ coords, tileSize, storeShape }) => {
             const indicesBottom = Math.min(tileSize * coords.y + tileSize, maxBoundsY);
 
             // FIX: This occasionally tries to fetch data that does not exist
+            // and loads the entire dataset at once instead of by tile
             const initTile = await fetchSvTile(
                 ship,
                 cruise,
@@ -50,6 +49,8 @@ const Tile = ({ coords, tileSize, storeShape }) => {
                 indicesRight
             )
             const tile = initTile;
+
+            const [width, height] = tile.shape;
 
             // Maps the SV points to a d3 scale
             const colorScale = scaleSequential(interpolateTurbo).domain([-100, 0]);
@@ -62,10 +63,9 @@ const Tile = ({ coords, tileSize, storeShape }) => {
                 colorData[i * 4 + 0] = Math.round(color.r * 255);
                 colorData[i * 4 + 1] = Math.round(color.g * 255);
                 colorData[i * 4 + 2] = Math.round(color.b * 255);
-                colorData[i * 4 + 3] = 255; // Alpha channel
             }
 
-            const dataTexture = new THREE.DataTexture(colorData, 256, 256, THREE.RGBAFormat, THREE.UnsignedByteType);
+            const dataTexture = new THREE.DataTexture(colorData, width, height, THREE.RGBAFormat, THREE.UnsignedByteType);
 
             // WARN: This is deprecated?
             dataTexture.flipY = true;
@@ -81,6 +81,7 @@ const Tile = ({ coords, tileSize, storeShape }) => {
 
     return (
         <mesh
+            {...props}
             position={[coords.x, coords.y, 0]}
             ref={meshRef}>
             <planeGeometry args={[1, 1]} />
@@ -89,20 +90,10 @@ const Tile = ({ coords, tileSize, storeShape }) => {
     )
 }
 
-const tileCache = new Map()
-const fetchTile = ({ coords, ...props }) => {
-    const key = `${coords.x},${coords.y}`;
-    if (!tileCache.has(key)) {
-        tileCache.set(key, (<Tile key={key} coords={coords} {...props} />));
-    }
-
-    return tileCache.get(key);
-}
-
 const TileMap = () => {
-    const { camera, viewport } = useThree();
-    const [tiles, setTiles] = useState([]);
-    const dispatch = useDispatch()
+    const [visibleKeys, setVisibleKeys] = useState([]);
+    const tiles = useRef(new Map());
+    const dispatch = useDispatch();
 
     const storeShape = useSelector(selectStoreShape);
 
@@ -115,10 +106,9 @@ const TileMap = () => {
         dispatch(storeShapeAsync({ ship, cruise, sensor }))
     }, [dispatch])
 
-    useFrame(() => {
+    useFrame(({ camera, viewport }) => {
         if (!storeShape) return
 
-        // PERF: Panning is incredibly slow, especially trying to pan past the bounds of the data
         const left = camera.position.x - viewport.width / 2;
         const right = camera.position.x + viewport.width / 2;
         const bottom = camera.position.y - viewport.height / 2;
@@ -130,21 +120,36 @@ const TileMap = () => {
         const minY = Math.floor(bottom) - TILE_PADDING;
         const maxY = Math.floor(top) + TILE_PADDING;
 
-        const newTiles = [];
-
+        const newVisibleKeys = [];
         for (let x = minX; x < maxX; x++) {
             for (let y = minY; y < maxY; y++) {
-                newTiles.push(fetchTile({ coords: { x: x, y: y }, tileSize: 256, storeShape: storeShape }));
+                // HACK: Store the key as a 32-bit number where the first
+                // 16 bits are the x and the second 16 are the y. The next best
+                // solution is to use a string, which does not have overflow
+                // problems but is significantly less space efficient
+                const key = (x << 16) | (y & 0xffff);
+                newVisibleKeys.push(key);
             }
         }
+        setVisibleKeys(newVisibleKeys);
+    })
 
-        setTiles(newTiles);
+    visibleKeys.forEach(key => {
+        if (!tiles.current.has(key)) {
+            // Decode the key for the coordinates
+            const x = key >> 16;
+            const y = key & 0xffff;
+            tiles.current.set(key, (<Tile
+                key={key}
+                coords={{ x, y }}
+                tileSize={256}
+                storeShape={storeShape}
+            />))
+        }
     })
 
     return (
-        <>
-            {tiles}
-        </>
+        <>{Array.from(tiles.current.values())}</>
     )
 }
 
@@ -161,7 +166,7 @@ const Echofish = () => {
             <MapControls
                 makeDefault
                 enableRotate={false}
-                minDistance={0.25}
+                minDistance={0.125}
                 maxDistance={1}
                 maxPolarAngle={Math.PI / 2}
                 screenSpacePanning={true}
