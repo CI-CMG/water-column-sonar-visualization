@@ -7,7 +7,6 @@ import { Canvas, useFrame } from '@react-three/fiber'
 import { MapControls } from '@react-three/drei'
 import { fetchSvTile } from '../features/store/storeApi'
 import { selectStoreShape, storeShapeAsync } from '../features/store/storeSlice.js'
-import '../App.css'
 
 const fetchTexture = async (coords, tileSize, storeShape) => {
     const ship = "Henry_B._Bigelow"
@@ -21,7 +20,6 @@ const fetchTexture = async (coords, tileSize, storeShape) => {
     const maxTileBoundsX = Math.abs(maxBoundsValue[1][1]) / tileSize;
     const maxTileBoundsY = Math.abs(maxBoundsValue[0][0]) / tileSize;
 
-    // TODO: Do something when we go beyond the edge of the data
     if (coords.y < 0 || coords.y >= maxTileBoundsY || coords.x < 0 || coords.x >= maxTileBoundsX) return;
 
     const maxBoundsY = Math.abs(dataDimension[0]);
@@ -33,7 +31,6 @@ const fetchTexture = async (coords, tileSize, storeShape) => {
     const indicesBottom = Math.min(tileSize * coords.y + tileSize, maxBoundsY);
 
     // FIX: This occasionally tries to fetch data that does not exist
-    // and loads the entire dataset at once instead of by tile
     const initTile = await fetchSvTile(
         ship,
         cruise,
@@ -59,6 +56,8 @@ const fetchTexture = async (coords, tileSize, storeShape) => {
         colorData[i * 4 + 1] = Math.round(color.g * 255);
         colorData[i * 4 + 2] = Math.round(color.b * 255);
     }
+
+    console.log(colorData)
 
     const dataTexture = new THREE.DataTexture(colorData, width, height, THREE.RGBAFormat, THREE.UnsignedByteType);
 
@@ -97,7 +96,6 @@ const Tile = ({ coords, dataTexture, ...props }) => {
 
 const TileMap = () => {
     const textures = useRef(new Map());
-    const tilePool = useRef([]);
     const [tileData, setTileData] = useState([]);
     const [bounds, setBounds] = useState();
     const dispatch = useDispatch();
@@ -114,30 +112,23 @@ const TileMap = () => {
     }, [dispatch]);
 
     useEffect(() => {
-        const setTextures = async (tiles) => {
-            // Batch load all the textures asynchronously
-            // await Promise.all(
-            //     tiles.map(tile => (
-            //         fetchTexture(tile.coords, 256, storeShape).then(texture => {
-            //             textures.current.set(tile.key, texture);
-            //         })
-            //     ))
-            // );
-
+        const fetchTextures = async (tiles) => {
             for (let tile of tiles) {
                 const texture = await fetchTexture(tile.coords, 256, storeShape);
                 textures.current.set(tile.key, texture);
             }
 
-            setTileData(prev => [...prev])
+            // Force the tiles to refresh so the textures actually update
+            setTileData(prev => [...prev]);
         };
 
         if (!storeShape) return;
 
-        const missingKeys = tileData.filter(tile => !tile.texture);
+        // Only compute textures we don't have
+        const missingKeys = tileData.filter(tile => !textures.current.has(tile.key));
         if (missingKeys.length === 0) return;
 
-        setTextures(missingKeys);
+        fetchTextures(missingKeys);
     }, [tileData, storeShape]);
 
     useEffect(() => {
@@ -149,15 +140,13 @@ const TileMap = () => {
         for (let x = minX; x < maxX; x++) {
             for (let y = minY; y < maxY; y++) {
                 const key = `${x},${y}`;
-                newTileData.push({ key: key, coords: { x, y }, texture: textures.current.get(key) });
+                newTileData.push({ key: key, coords: { x, y } });
             }
         }
         setTileData(newTileData);
     }, [bounds]);
 
     useFrame(({ camera, viewport }) => {
-        if (!storeShape) return
-
         const left = camera.position.x - viewport.width / 2;
         const right = camera.position.x + viewport.width / 2;
         const bottom = camera.position.y - viewport.height / 2;
@@ -170,17 +159,18 @@ const TileMap = () => {
         const maxY = Math.floor(top) + TILE_PADDING;
 
         const newBounds = `${minX},${maxX},${minY},${maxY}`;
-        setBounds(newBounds);
+        if (newBounds !== bounds) {
+            setBounds(newBounds);
+        }
     })
 
-    console.log(tileData)
     return (
         <>
             {tileData.map(tile => (
                 <Tile
                     key={tile.key}
                     coords={tile.coords}
-                    dataTexture={tile.texture}
+                    dataTexture={textures.current.get(tile.key)}
                 />)
             )}
         </>
