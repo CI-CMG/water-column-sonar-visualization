@@ -65,12 +65,7 @@ const fetchTexture = async (coords, tileSize, storeShape) => {
         colorData[i * 4 + 2] = Math.round(color.b * 255);
     }
 
-    console.log(colorData)
-
     const dataTexture = new THREE.DataTexture(colorData, width, height, THREE.RGBAFormat, THREE.UnsignedByteType);
-
-    // WARN: This is deprecated?
-    dataTexture.flipY = true;
 
     dataTexture.needsUpdate = true;
 
@@ -168,6 +163,7 @@ const TileMap = () => {
 
         const newBounds = `${minX},${maxX},${minY},${maxY}`;
         if (newBounds !== bounds) {
+            console.log(`newBounds: ${newBounds}`)
             setBounds(newBounds);
         }
     })
@@ -190,7 +186,10 @@ const Echofish = () => {
         // This is an R3F canvas that allows for higher-level rendering
         // Without this, the implementation would be twice as long
         <Canvas
-            style={{ width: '100vw', height: '100vh' }}>
+            style={{ width: '100vw', height: '100vh' }}
+            // Flip the camera upside down to make it render the data rightside up
+            camera={{ up: [0, -1, 0] }}
+        >
             {/* Some lighting */}
             <ambientLight intensity={Math.PI / 2} />
             <TileMap />

@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { fetchStoreShape, fetchStoreAttributes, fetchDepth, fetchDepthArray, fetchSv } from './storeApi.js';
+import { fetchStoreShape, fetchSv } from './storeApi.js';
 
 // Prevent a bunch of null values initially
 const initialState = {
