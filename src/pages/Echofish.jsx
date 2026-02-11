@@ -51,6 +51,14 @@ const fetchTexture = async (coords, tileSize, storeShape) => {
 
     for (let i = 0; i < tile.data.length; i++) {
         const sv = tile.data[i];
+        if (sv === 0) {
+            colorData[i * 4 + 0] = 0;
+            colorData[i * 4 + 1] = 0;
+            colorData[i * 4 + 2] = 0;
+
+            continue;
+        }
+
         const color = new THREE.Color(colorScale(sv));
         colorData[i * 4 + 0] = Math.round(color.r * 255);
         colorData[i * 4 + 1] = Math.round(color.g * 255);
