@@ -12,14 +12,24 @@ Water Column Sonar Data Visualization Project for Warren Tech 2025 to 2026 Capst
 npm install
 ```
 
-3. Run Vite to start server
+3. Use npm to start the server
+
 ```sh
-npx vite
+npm run dev
 ```
 
 ## Structure
 
-This project uses React and Vite, so 
+This project uses React and Vite, so all source files live in the `src`
+directory. Within the `src` directory, the structure is as follows:
+
+``` js
+src
+├── app // The main store of the app lives here
+├── features // All slices of the store are here
+├── pages // Each page in the website has a file here that is routed to
+└── services // Basic APIs
+```
 
 ## Deployment
 
