@@ -1,10 +1,10 @@
-import { useRef, useEffect, useState, use } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import * as THREE from 'three'
 import { scaleSequential } from 'd3-scale'
 import { interpolateTurbo } from 'd3-scale-chromatic'
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { MapControls } from '@react-three/drei'
+import { Canvas, useFrame } from '@react-three/fiber'
+import { MapControls, OrthographicCamera } from '@react-three/drei'
 import { fetchSvTile } from '../features/store/storeApi'
 import { selectStoreShape, storeShapeAsync } from '../features/store/storeSlice.js'
 
@@ -33,11 +33,14 @@ const fetchTexture = async (coords, tileSize, storeShape) => {
     const indicesTop = tileSize * coords.y;
     const indicesBottom = Math.min(tileSize * coords.y + tileSize, maxBoundsY);
 
+    console.log(`Trying to fetch tile tile at coords (${coords.x}, ${coords.y}) with bounds [${indicesLeft}, ${indicesRight}] x [${indicesTop}, ${indicesBottom}]`);
+
     // FIX: This occasionally tries to fetch data that does not exist
     const initTile = await fetchSvTile(
         ship,
         cruise,
         sensor,
+        11,
         indicesTop,
         indicesBottom,
         indicesLeft,
@@ -47,7 +50,7 @@ const fetchTexture = async (coords, tileSize, storeShape) => {
     if (!initTile || !initTile.data) {
         return null;
     }
-    
+
     const tile = initTile;
 
     const [width, height] = tile.shape;
@@ -74,10 +77,10 @@ const fetchTexture = async (coords, tileSize, storeShape) => {
         }
 
         const dataTexture = new THREE.DataTexture(
-            colorData, 
-            width, 
-            height, 
-            THREE.RGBAFormat, 
+            colorData,
+            width,
+            height,
+            THREE.RGBAFormat,
             THREE.UnsignedByteType
         );
 
@@ -157,14 +160,6 @@ const TileMap = () => {
         }
     }, [storeShape]);
 
-    // Cleaning up old textures that aren't in use anymore
-    useEffect(() => {
-        if (storeShape) {
-            console.log(`Store shape: [${storeShape[0]}, ${storeShape[1]}]`);
-            console.log(`Tile bounds: [0 to ${Math.ceil(storeShape[0] / 256)}] x [0 to ${Math.ceil(storeShape[1] / 256)}]`);
-        }
-    }, [storeShape]);
-
     // Process the fetching in batches
     const processFetchQueue = async () => {
         if (isProcessingQueue.current || !storeShape) return;
@@ -174,6 +169,7 @@ const TileMap = () => {
 
         while (fetchQueue.current.length > 0) {
             const batch = fetchQueue.current.splice(0, MAX_CONCURRENT_FETCHES);
+            console.log("Fetching batch", batch)
 
             const batchPromises = batch.map(async (tile) => {
                 if (textures.current.has(tile.key) ||
@@ -184,7 +180,7 @@ const TileMap = () => {
 
                 fetchingTiles.current.add(tile.key);
                 try {
-                    const texture = await fetchTexture(tile.coords, 256, storeShape);
+                    const texture = await fetchTexture(tile.coords, 32, storeShape);
 
                     if (texture) {
                         textures.current.set(tile.key, texture);
@@ -202,7 +198,7 @@ const TileMap = () => {
 
             await Promise.all(batchPromises);
             setForceUpdate(prev => prev + 1); // Force update after each batch
-            await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between batches to prevent overwhelming the server
+            // await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between batches to prevent overwhelming the server
         }
 
         isProcessingQueue.current = false;
@@ -213,7 +209,7 @@ const TileMap = () => {
         const currentKeys = new Set(visibleTiles.map(tile => tile.key));
 
         const texturesToRemove = [];
-        textures.current.forEach((value, key) => {
+        textures.current.forEach((_value, key) => {
             if (!currentKeys.has(key)) {
                 texturesToRemove.push(key);
             }
@@ -235,7 +231,7 @@ const TileMap = () => {
             textures.current.forEach(texture => {
                 if (texture && texture.dispose) {
                     texture.dispose();
-                }            
+                }
             });
             textures.current.clear();
         };
@@ -244,7 +240,7 @@ const TileMap = () => {
     useEffect(() => {
         if (!storeShape) return;
 
-        const tilesToFetch = visibleTiles.filter(tile => 
+        const tilesToFetch = visibleTiles.filter(tile =>
             !textures.current.has(tile.key) &&
             !fetchingTiles.current.has(tile.key) &&
             !failedTiles.current.has(tile.key)
@@ -266,11 +262,14 @@ const TileMap = () => {
     }, [visibleTiles, storeShape]);
 
     // Updating the tiles based on viewport
-    useFrame(({ camera, viewport }) => {
-        const left = camera.position.x - viewport.width / 2;
-        const right = camera.position.x + viewport.width / 2;
-        const bottom = camera.position.y - viewport.height / 2;
-        const top = camera.position.y + viewport.height / 2;
+    useFrame(({ camera }) => {
+        const visibleWidth = (camera.right - camera.left) / camera.zoom;
+        const visibleHeight = (camera.top - camera.bottom) / camera.zoom;
+
+        const left = camera.position.x - visibleWidth / 2;
+        const right = camera.position.x + visibleWidth / 2;
+        const bottom = camera.position.y - visibleHeight / 2;
+        const top = camera.position.y + visibleHeight / 2;
 
         const TILE_PADDING = 1;
         const minX = Math.floor(left) - TILE_PADDING;
@@ -296,36 +295,31 @@ const TileMap = () => {
 
             activeTiles.current = newActiveTiles;
             setVisibleTiles(newVisibleTiles);
-            }
+        }
 
-            });
+    });
 
-            return (
-                <>
-                    {visibleTiles.map(tile => {
-                    const texture = textures.current.get(tile.key);
-                    return (
-                    <Tile 
-                        key={tile.key} 
-                        coords={tile.coords} 
-                        dataTexture={texture} 
+    return (
+        <>
+            {visibleTiles.map(tile => {
+                const texture = textures.current.get(tile.key);
+                return (
+                    <Tile
+                        key={tile.key}
+                        coords={tile.coords}
+                        dataTexture={texture}
                     />
                 );
             })}
         </>
     )
 }
-            
 
 const Echofish = () => {
     return (
-        // This is an R3F canvas that allows for higher-level rendering
-        // Without this, the implementation would be twice as long
-        <Canvas
-            style={{ width: '100vw', height: '100vh' }}
-            // Flip the camera upside down to make it render the data rightside up
-            camera={{ up: [0, -1, 0], position: [0, 0, 0.75] }}
-        >
+        <Canvas style={{ width: '100vw', height: '100vh' }}>
+            {/* Flip the camera upside down to make it render the data rightside up */}
+            <OrthographicCamera makeDefault position={[0, 0, 5]} up={[0, -1, 0]} zoom={100} />
             {/* Some lighting */}
             <ambientLight intensity={Math.PI / 2} />
             <TileMap />
@@ -333,8 +327,8 @@ const Echofish = () => {
             <MapControls
                 makeDefault
                 enableRotate={false}
-                minDistance={0.125}
-                maxDistance={10}
+                minZoom={25}
+                maxZoom={750}
                 minPolarAngle={Math.PI / 2}
                 maxPolarAngle={Math.PI / 2}
                 screenSpacePanning={true}

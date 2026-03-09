@@ -22,9 +22,9 @@ export const fetchSv = async (ship, cruise, sensor, indexDepth, indexTime) => {
     return zarr.get(arr, [indexDepth, indexTime])
 };
 
-export const fetchSvTile = async (ship, cruise, sensor, indexTop, indexBottom, indexLeft, indexRight) => {
+export const fetchSvTile = async (ship, cruise, sensor, level, indexTop, indexBottom, indexLeft, indexRight) => {
     const url =
-        `https://noaa-wcsd-zarr-pds.s3.amazonaws.com/level_5/${ship}/${cruise}/${sensor}/${cruise}_resampled.zarr/level_11`;
+        `https://noaa-wcsd-zarr-pds.s3.amazonaws.com/level_5/${ship}/${cruise}/${sensor}/${cruise}_resampled.zarr/level_${level}`;
     const root = zarr.root(new zarr.FetchStore(url));
 
     const arr = await zarr.open.v3(root.resolve("Sv"), { kind: "array" })
