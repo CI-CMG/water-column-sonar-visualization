@@ -257,7 +257,9 @@ const TileMap = () => {
             return distA - distB;
         });
 
-        fetchQueue.current.push(...tilesToFetch);
+        // Replace the fetch queue so that tiles that aren't on screen aren't fetched
+        fetchQueue.current = tilesToFetch;
+
         processFetchQueue();
     }, [visibleTiles, storeShape]);
 
