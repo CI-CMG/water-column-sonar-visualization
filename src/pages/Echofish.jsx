@@ -8,7 +8,18 @@ import { MapControls, OrthographicCamera } from '@react-three/drei'
 import { fetchSvTile } from '../features/store/storeApi'
 import { selectStoreShape, storeShapeAsync } from '../features/store/storeSlice.js'
 
-const fetchTexture = async (coords, tileSize, storeShape) => {
+// Map zoom to level: zoom 25 = level 11 (most zoomed out), zoom 750 = level 0 (most detailed)
+const zoomToLevel = (zoom) => {
+    const minZoom = 25;
+    const maxZoom = 750;
+    const maxLevel = 11;
+
+    const clampedZoom = Math.max(minZoom, Math.min(maxZoom, zoom));
+    const t = (clampedZoom - minZoom) / (maxZoom - minZoom);
+    return Math.round(maxLevel - t * maxLevel);
+};
+
+const fetchTexture = async (coords, tileSize, storeShape, level) => {
     const ship = "Henry_B._Bigelow"
     const cruise = "HB1906"
     const sensor = "EK60"
@@ -40,7 +51,7 @@ const fetchTexture = async (coords, tileSize, storeShape) => {
         ship,
         cruise,
         sensor,
-        11,
+        level,
         indicesTop,
         indicesBottom,
         indicesLeft,
@@ -135,10 +146,11 @@ const TileMap = () => {
     const dispatch = useDispatch();
     const lastBoundsRef = useRef(null);
     const isProcessingQueue = useRef(false);
+    const currentLevel = useRef(11); // Tracks our current level
 
     const storeShape = useSelector(selectStoreShape);
 
-    const MAX_CONCURRENT_FETCHES = 5; // The lower, the slower it loads. The higher, the faster it loads but the more likely it is to throw an insufficient resources error. 
+    const MAX_CONCURRENT_FETCHES = 5; 
 
     useEffect(() => {
         // Temporary values
@@ -149,7 +161,6 @@ const TileMap = () => {
         dispatch(storeShapeAsync({ ship, cruise, sensor }))
     }, [dispatch]);
 
-    // Log bounds on load
     useEffect(() => {
         if (storeShape) {
             const tileSize = 256;
@@ -180,7 +191,7 @@ const TileMap = () => {
 
                 fetchingTiles.current.add(tile.key);
                 try {
-                    const texture = await fetchTexture(tile.coords, 32, storeShape);
+                    const texture = await fetchTexture(tile.coords, 128, storeShape, currentLevel.current);
 
                     if (texture) {
                         textures.current.set(tile.key, texture);
@@ -280,8 +291,20 @@ const TileMap = () => {
         const maxY = Math.floor(top) + TILE_PADDING;
 
         const newBounds = `${minX},${maxX},${minY},${maxY}`;
+        const newLevel = zoomToLevel(camera.zoom);
+        const levelChanged = newLevel !== currentLevel.current;
 
-        if (newBounds !== lastBoundsRef.current) {
+        if (newBounds !== lastBoundsRef.current || levelChanged) {
+            if (levelChanged) {
+                console.log(`Zoom: ${camera.zoom.toFixed(2)}, Level: ${newLevel}`);
+                textures.current.forEach(texture => texture?.dispose?.());
+                textures.current.clear();
+                activeTiles.current.clear();
+                failedTiles.current.clear();
+                fetchQueue.current = [];
+                currentLevel.current = newLevel;
+            }
+
             lastBoundsRef.current = newBounds;
 
             const newVisibleTiles = [];
