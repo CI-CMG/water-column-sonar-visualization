@@ -141,7 +141,7 @@ const TileMap = () => {
     const fetchingTiles = useRef(new Set());
     const failedTiles = useRef(new Set());
     const fetchQueue = useRef([]); // Queue to manage fetches when there are too many concurrent ones-- throws an insufficient resources error if too many fetches are attempted at once.
-    const [visibleTiles, setVisibleTiles] = useState([]);
+    const visibleTiles = useRef([]);
     const [, setForceUpdate] = useState(0); // State to force re-render when textures update
     const dispatch = useDispatch();
     const lastBoundsRef = useRef(null);
@@ -150,7 +150,7 @@ const TileMap = () => {
 
     const storeShape = useSelector(selectStoreShape);
 
-    const MAX_CONCURRENT_FETCHES = 5; 
+    const MAX_CONCURRENT_FETCHES = 5;
 
     useEffect(() => {
         // Temporary values
@@ -191,7 +191,7 @@ const TileMap = () => {
 
                 fetchingTiles.current.add(tile.key);
                 try {
-                    const texture = await fetchTexture(tile.coords, 128, storeShape, currentLevel.current);
+                    const texture = await fetchTexture(tile.coords, 128, storeShape, tile.zoom);
 
                     if (texture) {
                         textures.current.set(tile.key, texture);
@@ -216,42 +216,32 @@ const TileMap = () => {
         console.log(`Loaded: ${textures.current.size}, Failed: ${failedTiles.current.size}`);
     };
 
-    useEffect(() => {
-        const currentKeys = new Set(visibleTiles.map(tile => tile.key));
-
-        const texturesToRemove = [];
-        textures.current.forEach((_value, key) => {
-            if (!currentKeys.has(key)) {
-                texturesToRemove.push(key);
-            }
-        });
-
-        texturesToRemove.forEach(key => {
-            const texture = textures.current.get(key);
-            if (texture && texture.dispose) {
-                texture.dispose();
-            }
-            textures.current.delete(key);
-            activeTiles.current.delete(key);
-        });
-    }, [visibleTiles]);
-
-    // Complete clean up on unmount
-    useEffect(() => {
-        return () => {
-            textures.current.forEach(texture => {
-                if (texture && texture.dispose) {
-                    texture.dispose();
-                }
-            });
-            textures.current.clear();
-        };
-    }, []);
+    // // TODO: Only queue old tiles for removal
+    //
+    // useEffect(() => {
+    //     const currentKeys = new Set(visibleTiles.current.map(tile => tile.key));
+    //
+    //     const texturesToRemove = [];
+    //     textures.current.forEach((_value, key) => {
+    //         if (!currentKeys.has(key)) {
+    //             texturesToRemove.push(key);
+    //         }
+    //     });
+    //
+    //     texturesToRemove.forEach(key => {
+    //         const texture = textures.current.get(key);
+    //         if (texture && texture.dispose) {
+    //             texture.dispose();
+    //         }
+    //         textures.current.delete(key);
+    //         activeTiles.current.delete(key);
+    //     });
+    // }, [visibleTiles.current]);
 
     useEffect(() => {
         if (!storeShape) return;
 
-        const tilesToFetch = visibleTiles.filter(tile =>
+        const tilesToFetch = visibleTiles.current.filter(tile =>
             !textures.current.has(tile.key) &&
             !fetchingTiles.current.has(tile.key) &&
             !failedTiles.current.has(tile.key)
@@ -259,8 +249,8 @@ const TileMap = () => {
 
         if (tilesToFetch.length === 0) return;
 
-        const centerX = visibleTiles.reduce((sum, tile) => sum + tile.coords.x, 0) / visibleTiles.length;
-        const centerY = visibleTiles.reduce((sum, tile) => sum + tile.coords.y, 0) / visibleTiles.length;
+        const centerX = visibleTiles.current.reduce((sum, tile) => sum + tile.coords.x, 0) / visibleTiles.current.length;
+        const centerY = visibleTiles.current.reduce((sum, tile) => sum + tile.coords.y, 0) / visibleTiles.current.length;
 
         tilesToFetch.sort((a, b) => {
             const distA = Math.hypot(a.coords.x - centerX, a.coords.y - centerY);
@@ -272,7 +262,7 @@ const TileMap = () => {
         fetchQueue.current = tilesToFetch;
 
         processFetchQueue();
-    }, [visibleTiles, storeShape]);
+    }, [visibleTiles.current, storeShape]);
 
     // Updating the tiles based on viewport
     useFrame(({ camera }) => {
@@ -312,21 +302,22 @@ const TileMap = () => {
 
             for (let x = minX; x < maxX; x++) {
                 for (let y = minY; y < maxY; y++) {
-                    const key = `${x},${y}`;
-                    newVisibleTiles.push({ key, coords: { x, y } });
+                    const key = `${x},${y},${currentLevel.current}`;
+                    newVisibleTiles.push({ key, coords: { x, y }, zoom: currentLevel.current });
                     newActiveTiles.add(key);
                 }
             }
 
             activeTiles.current = newActiveTiles;
-            setVisibleTiles(newVisibleTiles);
+            visibleTiles.current = newVisibleTiles;
+            setForceUpdate(prev => prev + 1);
         }
 
     });
 
     return (
         <>
-            {visibleTiles.map(tile => {
+            {visibleTiles.current.map(tile => {
                 const texture = textures.current.get(tile.key);
                 return (
                     <Tile
@@ -340,25 +331,34 @@ const TileMap = () => {
     )
 }
 
+const Panel = ({ ...props }) => {
+    return (
+        <div {...props}>This is the panel</div>
+    )
+}
+
 const Echofish = () => {
     return (
-        <Canvas style={{ width: '100vw', height: '100vh' }}>
-            {/* Flip the camera upside down to make it render the data rightside up */}
-            <OrthographicCamera makeDefault position={[0, 0, 5]} up={[0, -1, 0]} zoom={100} />
-            {/* Some lighting */}
-            <ambientLight intensity={Math.PI / 2} />
-            <TileMap />
-            {/* Enables panning and zooming on the box */}
-            <MapControls
-                makeDefault
-                enableRotate={false}
-                minZoom={25}
-                maxZoom={750}
-                minPolarAngle={Math.PI / 2}
-                maxPolarAngle={Math.PI / 2}
-                screenSpacePanning={true}
-            />
-        </Canvas>
+        <>
+            <Canvas style={{ width: '100vw', height: '100vh' }}>
+                {/* Flip the camera upside down to make it render the data rightside up */}
+                <OrthographicCamera makeDefault position={[0, 0, 5]} up={[0, -1, 0]} zoom={100} />
+                {/* Some lighting */}
+                <ambientLight intensity={Math.PI / 2} />
+                <TileMap />
+                {/* Enables panning and zooming on the box */}
+                <MapControls
+                    makeDefault
+                    enableRotate={false}
+                    minZoom={25}
+                    maxZoom={750}
+                    minPolarAngle={Math.PI / 2}
+                    maxPolarAngle={Math.PI / 2}
+                    screenSpacePanning={true}
+                />
+            </Canvas>
+            <Panel className="panel" />
+        </>
     )
 }
 
