@@ -8,6 +8,8 @@ import { MapControls, OrthographicCamera } from '@react-three/drei'
 import { fetchSvTile } from '../features/store/storeApi'
 import { selectStoreShape, storeShapeAsync } from '../features/store/storeSlice.js'
 
+import './Echofish.css'
+
 // Map zoom to level: zoom 25 = level 11 (most zoomed out), zoom 750 = level 0 (most detailed)
 const zoomToLevel = (zoom) => {
     const minZoom = 25;
@@ -135,7 +137,7 @@ const Tile = ({ coords, dataTexture, ...props }) => {
     )
 }
 
-const TileMap = () => {
+const TileMap = ({ setData }) => {
     const textures = useRef(new Map());
     const activeTiles = useRef(new Set());
     const fetchingTiles = useRef(new Set());
@@ -168,6 +170,10 @@ const TileMap = () => {
             const maxTilesY = Math.ceil(storeShape[0] / tileSize);
             console.log(`Store shape: [${storeShape[0]}, ${storeShape[1]}]`);
             console.log(`Tile/World bounds: [0 to ${maxTilesX}] x [0 to ${maxTilesY}]`);
+            setData(prev => ({
+                ...prev,
+                storeShape: `[${storeShape[0]}, ${storeShape[1]}]`,
+            }));
         }
     }, [storeShape]);
 
@@ -196,6 +202,10 @@ const TileMap = () => {
                     if (texture) {
                         textures.current.set(tile.key, texture);
                         activeTiles.current.add(tile.key);
+                        setData(prev => ({
+                            ...prev,
+                            loadedTiles: textures.current.size
+                        }))
                     } else {
                         failedTiles.current.add(tile.key);
                     }
@@ -274,7 +284,7 @@ const TileMap = () => {
         const bottom = camera.position.y - visibleHeight / 2;
         const top = camera.position.y + visibleHeight / 2;
 
-        const TILE_PADDING = 1;
+        const TILE_PADDING = 2;
         const minX = Math.floor(left) - TILE_PADDING;
         const maxX = Math.floor(right) + TILE_PADDING;
         const minY = Math.floor(bottom) - TILE_PADDING;
@@ -287,6 +297,10 @@ const TileMap = () => {
         if (newBounds !== lastBoundsRef.current || levelChanged) {
             if (levelChanged) {
                 console.log(`Zoom: ${camera.zoom.toFixed(2)}, Level: ${newLevel}`);
+                setData(prev => ({
+                    ...prev,
+                    zoomLevel: newLevel
+                }))
                 textures.current.forEach(texture => texture?.dispose?.());
                 textures.current.clear();
                 activeTiles.current.clear();
@@ -296,6 +310,11 @@ const TileMap = () => {
             }
 
             lastBoundsRef.current = newBounds;
+
+            setData(prev => ({
+                ...prev,
+                tileBounds: `[${minX} to ${maxX}] x [${minY} to ${maxY}]`
+            }))
 
             const newVisibleTiles = [];
             const newActiveTiles = new Set();
@@ -331,13 +350,19 @@ const TileMap = () => {
     )
 }
 
-const Panel = ({ ...props }) => {
+const Panel = ({ data, ...props }) => {
     return (
-        <div {...props}>This is the panel</div>
+        <div {...props}>
+            <ul>
+                {Object.entries(data ?? {}).map(([key, value]) => (<li key={key}>{key}: {value}</li>))}
+            </ul>
+        </div>
     )
 }
 
 const Echofish = () => {
+    const [data, setData] = useState(null);
+
     return (
         <>
             <Canvas style={{ width: '100vw', height: '100vh' }}>
@@ -345,7 +370,7 @@ const Echofish = () => {
                 <OrthographicCamera makeDefault position={[0, 0, 5]} up={[0, -1, 0]} zoom={100} />
                 {/* Some lighting */}
                 <ambientLight intensity={Math.PI / 2} />
-                <TileMap />
+                <TileMap setData={setData} />
                 {/* Enables panning and zooming on the box */}
                 <MapControls
                     makeDefault
@@ -357,7 +382,7 @@ const Echofish = () => {
                     screenSpacePanning={true}
                 />
             </Canvas>
-            <Panel className="panel" />
+            <Panel data={data} className="panel" />
         </>
     )
 }
